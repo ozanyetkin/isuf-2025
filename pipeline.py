@@ -17,11 +17,31 @@ def load_data(file_path):
 
 
 # Visualize Data
-def visualize_data(geo_data):
-    """Create a simple visualization of the GeoDataFrame."""
-    geo_data.plot(column="type", cmap="viridis", legend=True)
-    plt.title("Land Use Map")
-    plt.show()
+def visualize_data(geo_data, output_path="land_use_map.png"):
+    """Create a simple visualization of the GeoDataFrame and save it to a file."""
+    fig, ax = plt.subplots(1, 1, figsize=(15, 10))
+    geo_data.plot(column="type", cmap="viridis", legend=True, ax=ax)
+    plt.title("Land Use Map", fontsize=15)
+    plt.savefig(output_path, bbox_inches="tight")
+    plt.close()
+
+
+# Visualize Predictions
+def visualize_predictions(geo_data, predictions, output_path="predictions_map.png"):
+    """Visualize the model predictions alongside the ground truth on the GeoDataFrame and save it to a file."""
+    geo_data["predictions"] = predictions
+    fig, axes = plt.subplots(1, 2, figsize=(30, 10))
+
+    # Ground Truth
+    geo_data.plot(column="type", cmap="viridis", legend=True, ax=axes[0])
+    axes[0].set_title("Ground Truth Land Use Map", fontsize=15)
+
+    # Predictions
+    geo_data.plot(column="predictions", cmap="viridis", legend=True, ax=axes[1])
+    axes[1].set_title("Predicted Land Use Map", fontsize=15)
+
+    plt.savefig(output_path, bbox_inches="tight")
+    plt.close()
 
 
 # Preprocess Data
@@ -53,13 +73,13 @@ def train_model(features, target):
     model.fit(X_train, y_train)
     predictions = model.predict(X_test)
     print(classification_report(y_test, predictions))
-    return model
+    return model, X_test, y_test, predictions
 
 
 # Main Script
 if __name__ == "__main__":
     # File path to your dataset
-    file_path = "data/planet_13.046,52.361_13.731,52.672-shp/shape/buildings.shp"
+    file_path = "data/planet_7.66971,45.05372_7.71254,45.07629-shp/shape/buildings.shp"
 
     try:
         data = load_data(file_path)
@@ -68,10 +88,14 @@ if __name__ == "__main__":
         features, target = preprocess_data(data)
         print("Data preprocessing complete.")
 
-        # visualize_data(data)
+        visualize_data(data)
 
-        model = train_model(features, target)
+        model, X_test, y_test, predictions = train_model(features, target)
         print("Model training complete.")
+
+        # Create a GeoDataFrame for the test data
+        test_geo_data = data.iloc[X_test.index].copy()
+        visualize_predictions(test_geo_data, predictions)
 
     except Exception as e:
         print(f"Error: {e}")
