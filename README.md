@@ -33,21 +33,9 @@ data/
         README.txt
         shape/
             ...
-
-
 gpkg_reader.py
-
-
-
-
 pipeline.py
-
-
-
-
 README.md
-
-
 ```
 
 ## Requirements
