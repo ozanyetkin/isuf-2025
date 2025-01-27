@@ -1,11 +1,10 @@
 import os
 import geopandas as gpd
-import pandas as pd
 import matplotlib.pyplot as plt
+
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
-import folium
 
 
 # Load Data
@@ -29,9 +28,11 @@ def visualize_data(geo_data):
 def preprocess_data(geo_data):
     """Preprocess spatial data for ML."""
     # Example: Drop rows with missing values
-    geo_data = geo_data.dropna(subset=["type"])
+    geo_data = geo_data.dropna(subset=["type"]).copy()
+    geo_data = geo_data[geo_data.is_valid]
 
     # Convert geometry to features (e.g., area, centroid coordinates)
+    geo_data = geo_data.to_crs(epsg=3395)  # Re-project to a projected CRS
     geo_data["area"] = geo_data.geometry.area
     geo_data["centroid_x"] = geo_data.geometry.centroid.x
     geo_data["centroid_y"] = geo_data.geometry.centroid.y
@@ -64,13 +65,13 @@ if __name__ == "__main__":
         data = load_data(file_path)
         print("Data loaded successfully.")
 
-        visualize_data(data)
+        features, target = preprocess_data(data)
+        print("Data preprocessing complete.")
 
-        # features, target = preprocess_data(data)
-        # print("Data preprocessing complete.")
+        # visualize_data(data)
 
-        # model = train_model(features, target)
-        # print("Model training complete.")
+        model = train_model(features, target)
+        print("Model training complete.")
 
     except Exception as e:
         print(f"Error: {e}")
