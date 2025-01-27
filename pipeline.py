@@ -20,7 +20,7 @@ def load_data(file_path):
 def visualize_data(geo_data, output_path="land_use_map.png"):
     """Create a simple visualization of the GeoDataFrame and save it to a file."""
     fig, ax = plt.subplots(1, 1, figsize=(15, 10))
-    geo_data.plot(column="type", cmap="viridis", legend=True, ax=ax)
+    geo_data.plot(column="type", cmap="tab20", legend=True, ax=ax)
     plt.title("Land Use Map", fontsize=15)
     plt.savefig(output_path, bbox_inches="tight")
     plt.close()
@@ -33,11 +33,11 @@ def visualize_predictions(geo_data, predictions, output_path="predictions_map.pn
     fig, axes = plt.subplots(1, 2, figsize=(30, 10))
 
     # Ground Truth
-    geo_data.plot(column="type", cmap="viridis", legend=True, ax=axes[0])
+    geo_data.plot(column="type", cmap="tab20", legend=True, ax=axes[0])
     axes[0].set_title("Ground Truth Land Use Map", fontsize=15)
 
     # Predictions
-    geo_data.plot(column="predictions", cmap="viridis", legend=True, ax=axes[1])
+    geo_data.plot(column="predictions", cmap="tab20", legend=True, ax=axes[1])
     axes[1].set_title("Predicted Land Use Map", fontsize=15)
 
     plt.savefig(output_path, bbox_inches="tight")
@@ -84,6 +84,8 @@ if __name__ == "__main__":
     try:
         data = load_data(file_path)
         print("Data loaded successfully.")
+
+        print(data.head())
 
         features, target = preprocess_data(data)
         print("Data preprocessing complete.")
