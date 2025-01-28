@@ -84,6 +84,7 @@ if __name__ == "__main__":
     try:
         data = load_data(file_path)
         print("Data loaded successfully.")
+        print(data.head())
 
         features, target = preprocess_data(data)
         print("Data preprocessing complete.")
