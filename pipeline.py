@@ -79,7 +79,7 @@ def train_model(features, target):
 # Main Script
 if __name__ == "__main__":
     # File path to your dataset
-    file_path = "data/planet_7.66971,45.05372_7.71254,45.07629-shp/shape/buildings.shp"
+    file_path = "data/planet_13.3669,52.4986_13.4525,52.5334-shp/shape/buildings.shp"
 
     try:
         data = load_data(file_path)
@@ -89,7 +89,6 @@ if __name__ == "__main__":
         print("Data preprocessing complete.")
 
         visualize_data(data)
-
         model, X_test, y_test, predictions = train_model(features, target)
         print("Model training complete.")
 
