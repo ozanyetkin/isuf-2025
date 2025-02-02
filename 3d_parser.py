@@ -1,21 +1,15 @@
 import overpy
 import pyvista as pv
 import numpy as np
-from pyproj import Transformer
+from pyproj import Proj, transform
 
 
-# Function to determine UTM zone based on longitude
-def get_utm_zone(lon):
-    return int((lon + 180) / 6) + 1  # UTM zones are 6 degrees wide
-
-
-# Convert lat/lon to UTM coordinates dynamically
+# Convert lat/lon to UTM coordinates
 def latlon_to_utm(lon, lat):
-    utm_zone = get_utm_zone(lon)
-    transformer = Transformer.from_crs(
-        f"epsg:4326", f"epsg:326{utm_zone}", always_xy=True
-    )  # EPSG:4326 is WGS84
-    x, y = transformer.transform(lon, lat)
+    proj_utm = Proj(
+        proj="utm", zone=33, ellps="WGS84", datum="WGS84"
+    )  # Adjust zone as needed
+    x, y = proj_utm(lon, lat)
     return x, y
 
 
@@ -48,18 +42,12 @@ def get_building_height(tags):
         return np.nan
 
 
-# Extract building type
-def get_building_type(tags):
-    return tags.get("building", "unknown")
-
-
 # Extract building geometry
 def extract_building_geometry(osm_data):
     buildings = []
     for way in osm_data.ways:
         nodes = [(float(node.lon), float(node.lat)) for node in way.nodes]
         height = get_building_height(way.tags)
-        building_type = get_building_type(way.tags)
         if np.isnan(height):
             height = 10  # Default height if not available
 
@@ -70,29 +58,15 @@ def extract_building_geometry(osm_data):
         base = np.column_stack((nodes, np.zeros(len(nodes))))
         top = np.column_stack((nodes, np.full(len(nodes), height)))
 
-        buildings.append((base, top, building_type))
+        buildings.append((base, top))
     return buildings
-
-
-# Define colors for different building types
-def get_building_color(building_type):
-    color_map = {
-        "residential": "blue",
-        "commercial": "red",
-        "industrial": "gray",
-        "education": "green",
-        "hospital": "yellow",
-        "church": "purple",
-        "unknown": "white",
-    }
-    return color_map.get(building_type, "white")
 
 
 # Create and plot 3D buildings
 def plot_buildings(buildings):
     plotter = pv.Plotter()
 
-    for base, top, building_type in buildings:
+    for base, top in buildings:
         num_points = len(base)
 
         # Create vertices
@@ -117,13 +91,13 @@ def plot_buildings(buildings):
 
         # Create mesh
         mesh = pv.PolyData(vertices, faces)
-        plotter.add_mesh(mesh, color=get_building_color(building_type), opacity=0.8)
+        plotter.add_mesh(mesh, color="gray", opacity=0.8)
 
     plotter.show()
 
 
 # Define bounding box (latitude_min, longitude_min, latitude_max, longitude_max)
-bbox = (52.5160, 13.3777, 52.5200, 13.3827)  # Example: Berlin Brandenburg Gate
+bbox = (40.7120, -74.0100, 40.7180, -74.0000)  # Larger area around New York City, near the World Trade Center
 
 osm_data = get_osm_3d_buildings(bbox)
 buildings = extract_building_geometry(osm_data)
