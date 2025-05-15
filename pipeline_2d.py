@@ -27,8 +27,23 @@ def load_data(file_path):
 # Visualize Data with Zoom Option
 def visualize_data(geo_data, output_path="land_use_map.png", zoom_factor=0.5):
     """Create a visualization of the GeoDataFrame with zooming and save it to a file."""
-    fig, ax = plt.subplots(1, 1, figsize=(15, 10))
-    geo_data.plot(column="type", cmap="tab20", legend=False, ax=ax)
+    # Drop rows with NaN building types to avoid invalid RGBA arguments
+    geo_data = geo_data.dropna(subset=["Building_t"]).copy()
+    fig, ax = plt.subplots(1, 1, figsize=(50, 50))
+    # Accumulate unique Building_t categories across all calls
+    global _ALL_CLASSES
+    if "_ALL_CLASSES" not in globals():
+        _ALL_CLASSES = set()
+    _ALL_CLASSES.update(geo_data["Building_t"].dropna().unique())
+
+    # Build a consistent colormap over every category seen so far
+    unique_classes = sorted(_ALL_CLASSES)
+    cmap = plt.get_cmap("Dark2", len(unique_classes))
+    palette = {cls: cmap(i) for i, cls in enumerate(unique_classes)}
+
+    # Map each feature to its color and plot
+    geo_data["color"] = geo_data["Building_t"].map(palette)
+    geo_data.plot(color=geo_data["color"], ax=ax)
 
     # Calculate the bounding box
     bounds = geo_data.total_bounds  # [minx, miny, maxx, maxy]
@@ -41,7 +56,11 @@ def visualize_data(geo_data, output_path="land_use_map.png", zoom_factor=0.5):
     ax.set_xlim(center_x - width / 2, center_x + width / 2)
     ax.set_ylim(center_y - height / 2, center_y + height / 2)
 
-    plt.title("Land Use Map (Zoomed)", fontsize=15)
+    city_name = os.path.splitext(os.path.basename(output_path))[0].replace(
+        "land_use_map_", ""
+    )
+    ax.set_title(city_name, fontsize=15)
+    ax.set_axis_off()
     plt.savefig(output_path, bbox_inches="tight")
     plt.close()
 
@@ -62,7 +81,7 @@ def visualize_predictions(
     height = (bounds[3] - bounds[1]) * zoom_factor
 
     # Ground Truth
-    geo_data.plot(column="type", cmap="tab20", legend=True, ax=axes[0])
+    geo_data.plot(column="Building_t", cmap="tab20", legend=True, ax=axes[0])
     axes[0].set_xlim(center_x - width / 2, center_x + width / 2)
     axes[0].set_ylim(center_y - height / 2, center_y + height / 2)
     axes[0].set_title("Ground Truth Land Use Map", fontsize=15)
@@ -80,14 +99,14 @@ def visualize_predictions(
 # Preprocess Data
 def preprocess_data(geo_data):
     """Preprocess spatial data for ML."""
-    geo_data = geo_data.dropna(subset=["type"]).copy()
+    geo_data = geo_data.dropna(subset=["Building_t"]).copy()
     geo_data = geo_data[geo_data.is_valid]
     geo_data = geo_data.to_crs(epsg=3395)
     geo_data["area"] = geo_data.geometry.area
     geo_data["centroid_x"] = geo_data.geometry.centroid.x
     geo_data["centroid_y"] = geo_data.geometry.centroid.y
     features = geo_data[["area", "centroid_x", "centroid_y"]]
-    target = geo_data["type"]
+    target = geo_data["Building_t"]
     return features, target
 
 
@@ -106,11 +125,11 @@ def train_model(features, target):
 
 # Main Script
 if __name__ == "__main__":
-    base_folder = "./data/city_centers"
+    base_folder = "./data/Selected Cities"
     zoom_factor = 1.0  # Adjust this to control zoom level
 
     for file_name in get_subfolder_names(base_folder):
-        file_path = f"{base_folder}/{file_name}/shape/buildings.shp"
+        file_path = f"{base_folder}/{file_name}/{file_name}_buildings.shp"
 
         try:
             data = load_data(file_path)
