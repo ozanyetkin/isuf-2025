@@ -137,7 +137,7 @@ if __name__ == "__main__":
 
             features, target = preprocess_data(data)
             print("Data preprocessing complete.")
-
+            
             visualize_data(
                 data,
                 output_path=f"land_use_map_{file_name}.png",
