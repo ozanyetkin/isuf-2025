@@ -10,14 +10,39 @@ from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 
-# ─── suppress the undefined-metric warning ────────────────────────────────
+# Suppress warnings
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
-# ─── 1. load & tag by city ────────────────────────────────────────────────
+# Consistent categories & colors
+categories = [
+    "multi-family",
+    "single-family",
+    "commercial",
+    "industrial",
+    "public",
+    "infrastructure",
+    "other",
+]
+color_map = {
+    "multi-family": "#1f77b4",
+    "single-family": "#ff7f0e",
+    "commercial": "#2ca02c",
+    "industrial": "#d62728",
+    "public": "#9467bd",
+    "infrastructure": "#8c564b",
+    "other": "#e377c2",
+}
+
+# Output folder
+output_dir = Path("outputs")
+output_dir.mkdir(exist_ok=True)
+
+# 1. Load all shapefiles, tag by city
 shp_paths = list(Path("data/Selected Cities").rglob("*.shp"))
 gdfs = []
 for fp in shp_paths:
@@ -29,12 +54,12 @@ if not gdfs:
     raise RuntimeError("No shapefiles found under data/Selected Cities")
 df = pd.concat(gdfs, ignore_index=True)
 
-# ─── 2. normalize, drop missing, reproject ────────────────────────────────
+# 2. Preprocess
 df.columns = df.columns.str.lower()
 df = df.dropna(subset=["building_t"]).to_crs(epsg=3857)
 
 
-# ─── 3. compute rotated-bbox dims ─────────────────────────────────────────
+# 3. Rotated‐bbox dims
 def rotated_dims(geom: Polygon):
     r = geom.minimum_rotated_rectangle
     pts = np.array(r.exterior.coords)[:4]
@@ -46,9 +71,8 @@ def rotated_dims(geom: Polygon):
 r_dims = np.array([rotated_dims(g) for g in df.geometry])
 df["rbox_width"], df["rbox_height"] = r_dims[:, 0], r_dims[:, 1]
 
-# ─── 4. map into main categories ──────────────────────────────────────────
-group_map = {}
-group_map["apartments"] = "multi-family"
+# 4. Main category mapping
+group_map = {"apartments": "multi-family"}
 for t in [
     "house",
     "detached",
@@ -86,7 +110,7 @@ for t in ["bridge", "viaduct", "railway", "transportation"]:
 
 df["building_main"] = df["building_t"].map(group_map).fillna("other")
 
-# ─── 5. select & clean features ───────────────────────────────────────────
+# 5. Numeric features
 features = [
     "compactnes",
     "global_int",
@@ -99,81 +123,70 @@ for c in features:
     df[c] = pd.to_numeric(df[c], errors="coerce")
 df = df.dropna(subset=features + ["building_main"])
 
-# ─── 6. for each city: train & plot ───────────────────────────────────────
+# 6. Per-city train & side-by-side plots
 for city, sub in df.groupby("city"):
-    # filter out tiny classes to allow stratify
+    # require at least two samples per class
     vc = sub["building_main"].value_counts()
     valid = vc[vc >= 2].index
     sub = sub[sub["building_main"].isin(valid)]
     if sub["building_main"].nunique() < 2:
         continue
 
-    # split indices (so geometry stays aligned)
+    # split indices
     idx = sub.index.to_numpy()
     idx_tr, idx_te = train_test_split(
         idx, test_size=0.2, random_state=42, stratify=sub.loc[idx, "building_main"]
     )
 
-    # prepare data
+    # training & test data
     X_tr = sub.loc[idx_tr, features].values
     y_tr = LabelEncoder().fit_transform(sub.loc[idx_tr, "building_main"])
     X_te = sub.loc[idx_te, features].values
     le_city = LabelEncoder().fit(sub["building_main"])
     y_true = le_city.transform(sub.loc[idx_te, "building_main"])
 
-    # train and predict
+    # train & predict
     model = RandomForestClassifier(n_estimators=100, random_state=42)
     model.fit(X_tr, y_tr)
     y_pred = model.predict(X_te)
+    acc = accuracy_score(y_true, y_pred)
 
-    # confusion matrix
-    cm = confusion_matrix(y_true, y_pred)
-    labels = le_city.classes_
-
-    plt.figure(figsize=(6, 5))
-    plt.imshow(cm, cmap="Blues", interpolation="nearest")
-    plt.title(f"{city}: Confusion Matrix")
-    plt.colorbar()
-    plt.xticks(range(len(labels)), labels, rotation=45, ha="right")
-    plt.yticks(range(len(labels)), labels)
-    for i in range(len(labels)):
-        for j in range(len(labels)):
-            plt.text(
-                j,
-                i,
-                cm[i, j],
-                ha="center",
-                va="center",
-                color="white" if cm[i, j] > cm.max() / 2 else "black",
-            )
-    plt.tight_layout()
-
-    # feature importances
-    fi = pd.Series(model.feature_importances_, index=features).sort_values(
-        ascending=False
-    )
-    plt.figure(figsize=(6, 4))
-    fi.plot.bar()
-    plt.title(f"{city}: Feature Importances")
-    plt.ylabel("Importance")
-    plt.xticks(rotation=45, ha="right")
-    plt.tight_layout()
-
-    # map of predictions
+    # prepare test GeoDataFrame
     sub_test = sub.loc[idx_te].copy()
     sub_test["pred"] = le_city.inverse_transform(y_pred)
-    plt.figure(figsize=(6, 6))
-    ax = sub_test.plot(
-        column="pred",
-        categorical=True,
-        legend=True,
-        legend_kwds={"loc": "best"},
-        linewidth=0.1,
-        edgecolor="gray",
-    )
-    ax.set_title(f"{city}: Predicted Building Types")
-    ax.set_axis_off()
-    plt.tight_layout()
+    sub_train = sub.loc[idx_tr]
 
-# show all
-plt.show()
+    # legend patches
+    legend_patches = [Patch(color=color_map[c], label=c) for c in categories]
+    gray_patch = Patch(color="lightgray", label="train set")
+
+    fig, axes = plt.subplots(1, 2, figsize=(16, 8))
+    # Ground truth + train
+    sub_train.plot(ax=axes[0], color="lightgray", linewidth=0.1, edgecolor="gray")
+    for cat in categories:
+        mask = sub_test["building_main"] == cat
+        sub_test[mask].plot(
+            color=color_map[cat], ax=axes[0], linewidth=0.1, edgecolor="gray"
+        )
+    axes[0].set_title(f"{city} Ground Truth")
+    axes[0].legend(handles=[gray_patch] + legend_patches, loc="lower left")
+    axes[0].axis("off")
+
+    # Predictions + train
+    sub_train.plot(ax=axes[1], color="lightgray", linewidth=0.1, edgecolor="gray")
+    for cat in categories:
+        mask = sub_test["pred"] == cat
+        sub_test[mask].plot(
+            color=color_map[cat], ax=axes[1], linewidth=0.1, edgecolor="gray"
+        )
+    axes[1].set_title(f"{city} Predictions (Acc: {acc:.2f})")
+    axes[1].legend(handles=[gray_patch] + legend_patches, loc="lower left")
+    axes[1].axis("off")
+
+    plt.tight_layout()
+    # save high-res
+    fig_path = output_dir / f"{city}_comparison.png"
+    fig.savefig(fig_path, dpi=300)
+    plt.close(fig)
+
+print(f"Saved plots to {output_dir.resolve()}")
