@@ -113,8 +113,8 @@ X_tr_all, X_te_all, y_tr_all, y_te_all = train_test_split(
 # ─── 7. define candidate models ───────────────────────────────────────────
 candidates = {
     "RandomForest": RandomForestClassifier(n_estimators=100, random_state=42),
-    # "LogisticRegression": LogisticRegression(max_iter=1000, random_state=42),
-    # "GradientBoosting": GradientBoostingClassifier(random_state=42),
+    "LogisticRegression": LogisticRegression(max_iter=1000, random_state=42),
+    "GradientBoosting": GradientBoostingClassifier(random_state=42),
 }
 
 # ─── 8. evaluate each on the overall split ────────────────────────────────
@@ -154,43 +154,3 @@ fi = pd.Series(best_model.feature_importances_, index=features).sort_values(
     ascending=False
 )
 print(fi.to_string())
-
-# ─── 10. city-wise training with the chosen model ─────────────────────────
-for city, sub in df.groupby("city"):
-    # drop rare labels (per-city) to allow stratify
-    counts = sub["building_main"].value_counts()
-    valid = counts[counts >= 2].index
-    sub = sub[sub["building_main"].isin(valid)]
-    if sub["building_main"].nunique() < 2:
-        continue  # not enough diversity to train
-
-    X = sub[features].values
-    y = LabelEncoder().fit_transform(sub["building_main"])
-
-    X_tr, X_te, y_tr, y_te = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
-    )
-
-    m = best_model.__class__(**best_model.get_params())  # fresh instance
-    m.fit(X_tr, y_tr)
-    pred = m.predict(X_te)
-
-    print(f"\n=== City: {city} ({len(sub)} samples) ===")
-    print("Accuracy:", accuracy_score(y_te, pred))
-    print("Macro-F1:", f1_score(y_te, pred, average="macro", zero_division=0))
-    print("\nClassification Report:")
-    print(
-        classification_report(
-            y_te,
-            pred,
-            target_names=LabelEncoder().fit(sub["building_main"]).classes_,
-            zero_division=0,
-        )
-    )
-    print("Confusion Matrix:\n", confusion_matrix(y_te, pred))
-
-    fi_city = pd.Series(m.feature_importances_, index=features).sort_values(
-        ascending=False
-    )
-    print("\nFeature Importances:")
-    print(fi_city.to_string())
