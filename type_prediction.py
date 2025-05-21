@@ -11,41 +11,41 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 
-# 1. Read all .shp files recursively
+# 1. Read all .shp files recursively, tagging each with its city
 shp_paths = list(Path("data/Selected Cities").rglob("*.shp"))
-gdfs = [gpd.read_file(fp) for fp in shp_paths]
+gdfs = []
+for fp in shp_paths:
+    city = Path(fp).parent.name
+    gdf = gpd.read_file(fp)
+    gdf["city"] = city
+    gdfs.append(gdf)
 df = pd.concat(gdfs, ignore_index=True)
 
-# 2. Lower-case columns, drop missing target, reproject to metric CRS
+# 2. Normalize column names & drop missing fine-grained type
 df.columns = df.columns.str.lower()
-df = df.dropna(subset=["building_t"]).to_crs(epsg=3857)
+df = df.dropna(subset=["building_t"])
 
-# 3. Compute geometry‐derived features:
-#    - area, perimeter (axis‐aligned)
-#    - bbox_x/bbox_y (axis‐aligned)
-#    - rbox_x/rbox_y (minimum rotated rectangle)
-df["area"] = df.geometry.area
-df["perimeter"] = df.geometry.length
+# 3. Reproject to a metric CRS (so areas/lengths are in meters)
+df = df.to_crs(epsg=3857)
 
-# rotated minimum‐area rectangle dims:
-def rotated_dims(geom):
-    # get the min‐area rectangle (Polygon)
-    rbox: Polygon = geom.minimum_rotated_rectangle
-    # its exterior coords: [p0, p1, p2, p3, p0]
-    xs, ys = zip(*list(rbox.exterior.coords)[:4])
-    pts = np.column_stack([xs, ys])
-    # edge lengths
+
+# 4. Compute only rotated‐bbox geometry features
+def rotated_dims(geom: Polygon):
+    rbox = geom.minimum_rotated_rectangle
+    # first four points of the rectangle
+    pts = np.array(rbox.exterior.coords)[:4]
     edge1 = np.linalg.norm(pts[1] - pts[0])
     edge2 = np.linalg.norm(pts[2] - pts[1])
-    # return (width, height) as the smaller/larger
-    return (min(edge1, edge2), max(edge1, edge2))
+    # return (width, height) = (shorter, longer)
+    return min(edge1, edge2), max(edge1, edge2)
 
 
-# apply to each row
+df["area"] = df.geometry.area
+df["perimeter"] = df.geometry.length
 r_dims = np.array([rotated_dims(g) for g in df.geometry])
-df["rbox_x"], df["rbox_y"] = r_dims[:, 0], r_dims[:, 1]
+df["rbox_width"], df["rbox_height"] = r_dims[:, 0], r_dims[:, 1]
 
-# 4. Map into main categories
+# 5. Map fine‐grained types into main categories
 group_map = {
     **{
         t: "residential"
@@ -97,7 +97,7 @@ group_map = {
 }
 df["building_main"] = df["building_t"].map(group_map).fillna("other")
 
-# 5. Feature list now includes the rotated dims
+# 6. Define feature columns (no axis-aligned bbox!)
 feature_cols = [
     "compactnes",
     "global_int",
@@ -105,36 +105,50 @@ feature_cols = [
     "building_c",
     "area",
     "perimeter",
-    "rbox_x",
-    "rbox_y",
+    "rbox_width",
+    "rbox_height",
 ]
 
-# 6. Coerce & drop any NaNs
+# 7. Coerce to numeric and drop any rows with NaNs in features or target
 for c in feature_cols:
     df[c] = pd.to_numeric(df[c], errors="coerce")
 df = df.dropna(subset=feature_cols + ["building_main"])
 
-# 7. Encode, split, train
-le = LabelEncoder()
-y = le.fit_transform(df["building_main"])
-X = df[feature_cols].values
+# 8. For each city: train/test, fit RF, and print metrics + feature importances
+cities = df["city"].unique()
+for city in cities:
+    df_city = df[df["city"] == city]
+    # skip cities with too few samples or too few classes
+    if df_city.shape[0] < 20 or df_city["building_main"].nunique() < 2:
+        continue
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
-)
+    # filter out classes with fewer than 2 samples in this city
+    counts = df_city["building_main"].value_counts()
+    valid = counts[counts >= 2].index
+    df_city = df_city[df_city["building_main"].isin(valid)]
 
-clf = RandomForestClassifier(n_estimators=100, random_state=42)
-clf.fit(X_train, y_train)
+    X = df_city[feature_cols].values
+    le = LabelEncoder()
+    y = le.fit_transform(df_city["building_main"])
 
-# 8. Evaluate
-y_pred = clf.predict(X_test)
-print("Accuracy:", accuracy_score(y_test, y_pred))
-print("\nClassification Report:")
-print(classification_report(y_test, y_pred, target_names=le.classes_))
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
 
-# 9. Feature importances
-importances = pd.Series(clf.feature_importances_, index=feature_cols).sort_values(
-    ascending=False
-)
-print("\nFeature Importances:")
-print(importances.to_string())
+    clf = RandomForestClassifier(n_estimators=100, random_state=42)
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+
+    print(f"\n=== City: {city} ===")
+    print(f"Samples: {df_city.shape[0]}, Classes: {len(le.classes_)}")
+    print("Accuracy:", accuracy_score(y_test, y_pred))
+    print("Classification Report:")
+    print(
+        classification_report(y_test, y_pred, target_names=le.classes_, zero_division=0)
+    )
+
+    # feature importance
+    imps = pd.Series(clf.feature_importances_, index=feature_cols)
+    print("Feature Importance:")
+    for feat, imp in imps.sort_values(ascending=False).items():
+        print(f"  {feat:12s}: {imp:.4f}")
