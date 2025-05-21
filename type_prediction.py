@@ -68,11 +68,3 @@ indices = np.argsort(importances)[::-1]
 print("\nFeature Importances:")
 for f in range(X.shape[1]):
     print(f"{f + 1}. {feature_cols[indices[f]]}: {importances[indices[f]]:.4f}")
-
-# Correlation matrix (encode building_t to numeric codes first)
-df["building_t_code"] = le.transform(df["building_t"])
-corrs = df[feature_cols + ["building_t_code"]].corr()
-corrs = corrs.loc[feature_cols, "building_t_code"].sort_values(ascending=False)
-
-print("\nFeature Correlations:")
-print(corrs)
