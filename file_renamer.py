@@ -65,9 +65,10 @@ def print_shp_column_names(base_dir="data/Selected Cities"):
             print()
 
 
-def rename_shp_osm_type_to_building_t(base_dir="data/Selected Cities"):
+def rename_mismatched_columns(base_dir="data/Selected Cities"):
     """
-    Rename 'osm_type' column to 'Building_t' in all .shp files under base_dir and overwrite them.
+    Rename 'osm_type' column to 'Building_t' and 'b_coverage' column to 'building_c'
+    in all .shp files under base_dir and overwrite them.
     """
     if not os.path.isdir(base_dir):
         raise FileNotFoundError(f"Directory not found: {base_dir}")
@@ -88,14 +89,20 @@ def rename_shp_osm_type_to_building_t(base_dir="data/Selected Cities"):
                 print(f"Failed to read {shp_path}: {e}")
                 continue
 
-            if "osm_type" not in gdf.columns:
-                print(f"'osm_type' not found in {shp_path}, skipping")
+            rename_map = {}
+            if "osm_type" in gdf.columns:
+                rename_map["osm_type"] = "Building_t"
+            if "b_coverage" in gdf.columns:
+                rename_map["b_coverage"] = "building_c"
+
+            if not rename_map:
+                print(f"No columns to rename in {shp_path}, skipping")
                 continue
 
-            gdf = gdf.rename(columns={"osm_type": "Building_t"})
+            gdf = gdf.rename(columns=rename_map)
             try:
                 gdf.to_file(shp_path)
-                print(f"Renamed column in {shp_path}")
+                print(f"Renamed columns in {shp_path}: {rename_map}")
             except Exception as e:
                 print(f"Failed to write {shp_path}: {e}")
                 continue
@@ -158,6 +165,6 @@ def lowercase_and_validate_columns(base_dir="data/Selected Cities"):
 if __name__ == "__main__":
     rename_files_in_selected_cities()
     print_shp_column_names()
-    # rename_shp_osm_type_to_building_t()
-    # print_shp_column_names()
+    rename_mismatched_columns()
+    print_shp_column_names()
     lowercase_and_validate_columns()

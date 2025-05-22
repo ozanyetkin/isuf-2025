@@ -24,11 +24,23 @@ warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 # ─── 1. load & tag by city ─────────────────────────────────────────────────
 shp_paths = list(Path("data/Selected Cities").rglob("*.shp"))
 gdfs = []
-for fp in shp_paths:
-    city = Path(fp).parent.name
-    g = gpd.read_file(fp)
-    g["city"] = city
-    gdfs.append(g)
+base = Path("data/Selected Cities")
+
+gdfs = []
+for fp in Path(base).rglob("*.shp"):
+    # get the path relative to data/Selected Cities
+    rel = fp.relative_to(base)
+    # if the .shp lives in a folder, parts[0] is that folder name
+    # otherwise parts[0] is the filename (without suffix) once we .stem it
+    if len(rel.parts) > 1:
+        city = rel.parts[0]
+    else:
+        # shapefile sits directly in "Selected Cities"
+        city = fp.stem
+    gdf = gpd.read_file(fp)
+    gdf["city"] = city
+    gdfs.append(gdf)
+
 df = pd.concat(gdfs, ignore_index=True)
 
 # ─── 2. normalize, drop missing, reproject ────────────────────────────────
