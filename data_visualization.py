@@ -10,7 +10,7 @@ from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
@@ -29,14 +29,18 @@ categories = [
     "other",
 ]
 color_map = {
-    "multi-family": "#4E79A7",
-    "single-family": "#F28E2B",
-    "commercial": "#59A14F",
-    "industrial": "#E15759",
-    "public": "#B07AA1",
-    "infrastructure": "#9C755F",
-    "other": "#FF9DA7",
+    "multi-family": "#1F4E79",
+    "single-family": "#D55E00",
+    "commercial": "#3C7A3F",
+    "industrial": "#A11D21",
+    "public": "#7A4A91",
+    "infrastructure": "#FF5C6A",
+    "other": "#6B4A3F",
 }
+
+# lighter gray for train set
+light_gray = "#e0e0e0"
+gray_patch = Patch(color=light_gray, label="train set")
 
 # Output folder
 output_dir = Path("images")
@@ -151,56 +155,89 @@ for city, sub in df.groupby("city"):
     y_pred = model.predict(X_te)
     acc = accuracy_score(y_true, y_pred)
 
-    # prepare test GeoDataFrame
+    # prepare GeoDataFrames
     sub_test = sub.loc[idx_te].copy()
     sub_test["pred"] = le_city.inverse_transform(y_pred)
     sub_train = sub.loc[idx_tr]
 
-    # legend patches
-    legend_patches = [Patch(color=color_map[c], label=c) for c in categories]
-    gray_patch = Patch(
-        color="lightgray", label="train set"
-    )  # "lightgray" is a valid color
-
-    fig, axes = plt.subplots(1, 2, figsize=(16, 8))  # "figsize" is a valid argument
-    # Ground truth + train
-    sub_train.plot(ax=axes[0], color="lightgray", linewidth=0.1, edgecolor="gray")
+    # === 1) side-by-side comparison (with lighter gray) ===
+    fig, axes = plt.subplots(1, 2, figsize=(16, 8))
+    # ground truth
+    sub_train.plot(ax=axes[0], color=light_gray, linewidth=0.1, edgecolor="gray")
     for cat in categories:
         mask = sub_test["building_main"] == cat
         if not sub_test[mask].empty:
             sub_test[mask].plot(
-                ax=axes[0],
-                color=color_map[cat],
-                linewidth=0.1,
-                edgecolor="gray",
+                ax=axes[0], color=color_map[cat], linewidth=0.1, edgecolor="gray"
             )
     axes[0].set_title(f"{city} Ground Truth")
-    axes[0].legend(handles=[gray_patch] + legend_patches, loc="lower left")
+    axes[0].legend(
+        handles=[gray_patch] + [Patch(color=color_map[c], label=c) for c in categories],
+        loc="lower left",
+    )
     axes[0].axis("off")
 
-    # Predictions + train  (fixed!)
-    sub_train.plot(ax=axes[1], color="lightgray", linewidth=0.1, edgecolor="gray")
+    # predictions
+    sub_train.plot(ax=axes[1], color=light_gray, linewidth=0.1, edgecolor="gray")
     for cat in categories:
-        mask = sub_test["pred"] == cat  # ← filter on your predictions now
+        mask = sub_test["pred"] == cat  # ← fix here
         if not sub_test[mask].empty:
             sub_test[mask].plot(
-                ax=axes[1],
-                color=color_map[cat],
-                linewidth=0.1,
-                edgecolor="gray",
+                ax=axes[1], color=color_map[cat], linewidth=0.1, edgecolor="gray"
             )
     axes[1].set_title(f"{city} Predictions (Acc: {acc:.2f})")
-    axes[1].legend(handles=[gray_patch] + legend_patches, loc="lower left")
+    axes[1].legend(
+        handles=[gray_patch] + [Patch(color=color_map[c], label=c) for c in categories],
+        loc="lower left",
+    )
     axes[1].axis("off")
 
-    axes[1].set_title(f"{city} Predictions (Acc: {acc:.2f})")
-    axes[1].legend(handles=[gray_patch] + legend_patches, loc="lower left")
-    axes[1].axis("off")
-
-    plt.tight_layout(pad=2.0)  # Increase padding to prevent title cropping
-    # save high-res
-    fig_path = output_dir / f"{city}_comparison.png"
-    fig.savefig(fig_path, dpi=300)
+    plt.tight_layout(pad=2.0)
+    (output_dir / f"{city}_comparison.png").write_bytes(
+        fig.canvas.tostring_argb()
+    )  # or fig.savefig(...)
+    fig.savefig(output_dir / f"{city}_comparison.png", dpi=300)
     plt.close(fig)
 
-print(f"Saved plots to {output_dir.resolve()}")
+    # === 2) confusion‐matrix heatmap (percent) ===
+    # numeric true/pred arrays are y_true, y_pred
+    labels = range(len(le_city.classes_))
+    cm = confusion_matrix(y_true, y_pred, labels=labels)
+    cm_pct = cm.astype(float) / cm.sum(axis=1, keepdims=True) * 100
+    fig2, ax2 = plt.subplots(figsize=(8, 6))
+    im = ax2.imshow(cm_pct, interpolation="nearest", cmap="Blues")
+    ax2.set_xticks(labels)
+    ax2.set_yticks(labels)
+    ax2.set_xticklabels(le_city.classes_, rotation=45, ha="right")
+    ax2.set_yticklabels(le_city.classes_)
+    for i in labels:
+        for j in labels:
+            ax2.text(
+                j,
+                i,
+                f"{cm_pct[i, j]:.1f}%",
+                ha="center",
+                va="center",
+                color="white" if cm_pct[i, j] > 50 else "black",
+            )
+    ax2.set_xlabel("Predicted")
+    ax2.set_ylabel("True")
+    ax2.set_title(f"{city} Confusion Matrix (%)")
+    fig2.colorbar(im, ax=ax2)
+    fig2.tight_layout()
+    fig2.savefig(output_dir / f"{city}_confusion_matrix.png", dpi=300)
+    plt.close(fig2)
+
+    # === 3) feature‐importance bar chart ===
+    importances = model.feature_importances_
+    fig3, ax3 = plt.subplots(figsize=(8, 6))
+    ax3.barh(features, importances)
+    ax3.set_xlabel("Relative Importance")
+    ax3.set_title(f"{city} Feature Importances")
+    fig3.tight_layout()
+    fig3.savefig(output_dir / f"{city}_feature_importance.png", dpi=300)
+    plt.close(fig3)
+
+print(
+    f"Saved comparison, confusion matrix, and feature‐importance plots to {output_dir.resolve()}"
+)
