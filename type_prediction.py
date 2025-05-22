@@ -45,13 +45,10 @@ df = pd.concat(gdfs, ignore_index=True)
 
 # ─── 2. normalize, drop missing, reproject ────────────────────────────────
 df.columns = df.columns.str.lower()
-
-print("Df for barcelona:", df[df["city"] == "Barcelona"].head())
-print("Df for barcelona:", df[df["city"] == "Berlin"].head())
-
 df = df.dropna(subset=["building_t"]).to_crs(epsg=3857)
 
 print("Unique cities loaded:", df["city"].unique())
+
 
 # ─── 3. compute only rotated‐bbox dims ────────────────────────────────────
 def rotated_dims(geom: Polygon):
