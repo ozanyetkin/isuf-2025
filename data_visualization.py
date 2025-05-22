@@ -29,17 +29,17 @@ categories = [
     "other",
 ]
 color_map = {
-    "multi-family": "#1f77b4",
-    "single-family": "#ff7f0e",
-    "commercial": "#2ca02c",
-    "industrial": "#d62728",
-    "public": "#9467bd",
-    "infrastructure": "#8c564b",
-    "other": "#e377c2",
+    "multi-family": "#4E79A7",
+    "single-family": "#F28E2B",
+    "commercial": "#59A14F",
+    "industrial": "#E15759",
+    "public": "#B07AA1",
+    "infrastructure": "#9C755F",
+    "other": "#FF9DA7",
 }
 
 # Output folder
-output_dir = Path("outputs")
+output_dir = Path("images")
 output_dir.mkdir(exist_ok=True)
 
 # 1. Load all shapefiles, tag by city
@@ -128,7 +128,7 @@ for city, sub in df.groupby("city"):
     # require at least two samples per class
     vc = sub["building_main"].value_counts()
     valid = vc[vc >= 2].index
-    sub = sub[sub["building_main"].isin(valid)]
+    sub = sub[sub["building_main"].isin(valid)]  # "isin" is a valid pandas method
     if sub["building_main"].nunique() < 2:
         continue
 
@@ -158,32 +158,46 @@ for city, sub in df.groupby("city"):
 
     # legend patches
     legend_patches = [Patch(color=color_map[c], label=c) for c in categories]
-    gray_patch = Patch(color="lightgray", label="train set")
+    gray_patch = Patch(
+        color="lightgray", label="train set"
+    )  # "lightgray" is a valid color
 
-    fig, axes = plt.subplots(1, 2, figsize=(16, 8))
+    fig, axes = plt.subplots(1, 2, figsize=(16, 8))  # "figsize" is a valid argument
     # Ground truth + train
     sub_train.plot(ax=axes[0], color="lightgray", linewidth=0.1, edgecolor="gray")
     for cat in categories:
         mask = sub_test["building_main"] == cat
-        sub_test[mask].plot(
-            color=color_map[cat], ax=axes[0], linewidth=0.1, edgecolor="gray"
-        )
+        if not sub_test[mask].empty:
+            sub_test[mask].plot(
+                ax=axes[0],
+                color=color_map[cat],
+                linewidth=0.1,
+                edgecolor="gray",
+            )
     axes[0].set_title(f"{city} Ground Truth")
     axes[0].legend(handles=[gray_patch] + legend_patches, loc="lower left")
     axes[0].axis("off")
 
-    # Predictions + train
+    # Predictions + train  (fixed!)
     sub_train.plot(ax=axes[1], color="lightgray", linewidth=0.1, edgecolor="gray")
     for cat in categories:
-        mask = sub_test["pred"] == cat
-        sub_test[mask].plot(
-            color=color_map[cat], ax=axes[1], linewidth=0.1, edgecolor="gray"
-        )
+        mask = sub_test["pred"] == cat  # ← filter on your predictions now
+        if not sub_test[mask].empty:
+            sub_test[mask].plot(
+                ax=axes[1],
+                color=color_map[cat],
+                linewidth=0.1,
+                edgecolor="gray",
+            )
     axes[1].set_title(f"{city} Predictions (Acc: {acc:.2f})")
     axes[1].legend(handles=[gray_patch] + legend_patches, loc="lower left")
     axes[1].axis("off")
 
-    plt.tight_layout()
+    axes[1].set_title(f"{city} Predictions (Acc: {acc:.2f})")
+    axes[1].legend(handles=[gray_patch] + legend_patches, loc="lower left")
+    axes[1].axis("off")
+
+    plt.tight_layout(pad=2.0)  # Increase padding to prevent title cropping
     # save high-res
     fig_path = output_dir / f"{city}_comparison.png"
     fig.savefig(fig_path, dpi=300)

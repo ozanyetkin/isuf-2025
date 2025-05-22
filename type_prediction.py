@@ -127,8 +127,8 @@ X_tr_all, X_te_all, y_tr_all, y_te_all = train_test_split(
 # ─── 7. define candidate models ───────────────────────────────────────────
 candidates = {
     "RandomForest": RandomForestClassifier(n_estimators=100, random_state=42),
-    # "LogisticRegression": LogisticRegression(max_iter=1000, random_state=42),
-    # "GradientBoosting": GradientBoostingClassifier(random_state=42),
+    "LogisticRegression": LogisticRegression(max_iter=1000, random_state=42),
+    "GradientBoosting": GradientBoostingClassifier(random_state=42),
 }
 
 # ─── 8. evaluate each on the overall split ────────────────────────────────

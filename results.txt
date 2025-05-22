@@ -1,0 +1,276 @@
+RandomForest         → acc: 0.9090,  f1_macro: 0.4575
+LogisticRegression   → acc: 0.7817,  f1_macro: 0.2813
+GradientBoosting     → acc: 0.8625,  f1_macro: 0.3958
+
+▶ Selected best overall: 'RandomForest' (macro-F1=0.4575)
+
+=== Overall classification report ===
+                precision    recall  f1-score   support
+
+    commercial       0.29      0.03      0.05       132
+    industrial       0.74      0.31      0.44      1147
+infrastructure       1.00      0.06      0.11        17
+  multi-family       0.91      0.98      0.94     36155
+         other       0.90      0.60      0.72      1255
+        public       0.58      0.05      0.08       154
+ single-family       0.91      0.80      0.85     10201
+
+      accuracy                           0.91     49061
+     macro avg       0.76      0.40      0.46     49061
+  weighted avg       0.90      0.91      0.90     49061
+
+Overall confusion matrix:
+ [[    4     6     0   112     9     0     1]
+ [    3   354     0   726    14     0    50]
+ [    1     2     1    11     1     0     1]
+ [    4    96     0 35277    28     4   746]
+ [    1    10     0   441   755     1    47]
+ [    1     3     0   132     8     7     3]
+ [    0     9     0  1974    21     0  8197]]
+
+Overall feature importances:
+building_c     0.264523
+rbox_width     0.186926
+global_int     0.185162
+rbox_height    0.162526
+local_inte     0.126910
+compactnes     0.073953
+Total number of cities: 7
+
+=== City: Amsterdam (79223 samples) ===
+Accuracy: 0.9062164720732092
+Macro-F1: 0.5539575871936683
+
+Classification Report:
+               precision    recall  f1-score   support
+
+   commercial       0.00      0.00      0.00         2
+   industrial       0.82      0.49      0.61       367
+ multi-family       0.90      0.96      0.93      9893
+        other       0.90      0.90      0.90       103
+       public       0.00      0.00      0.00         3
+single-family       0.92      0.84      0.88      5477
+
+     accuracy                           0.91     15845
+    macro avg       0.59      0.53      0.55     15845
+ weighted avg       0.91      0.91      0.90     15845
+
+Confusion Matrix:
+ [[   0    0    2    0    0    0]
+ [   0  180  144    4    0   39]
+ [   0   30 9498    2    0  363]
+ [   0    1    5   93    0    4]
+ [   0    1    1    1    0    0]
+ [   0    7  879    3    0 4588]]
+
+Feature Importances:
+building_c     0.252005
+rbox_width     0.192068
+global_int     0.183623
+rbox_height    0.173642
+local_inte     0.119990
+compactnes     0.078672
+
+=== City: Barcelona (41863 samples) ===
+Accuracy: 0.9332377881285083
+Macro-F1: 0.5444098262636042
+
+Classification Report:
+               precision    recall  f1-score   support
+
+   industrial       0.83      0.39      0.53       312
+ multi-family       0.94      0.99      0.96      7452
+        other       1.00      0.42      0.59        12
+       public       0.00      0.00      0.00         1
+single-family       0.85      0.51      0.64       596
+
+     accuracy                           0.93      8373
+    macro avg       0.72      0.46      0.54      8373
+ weighted avg       0.93      0.93      0.92      8373
+
+Confusion Matrix:
+ [[ 122  185    0    0    5]
+ [  22 7382    0    0   48]
+ [   0    5    5    0    2]
+ [   0    1    0    0    0]
+ [   3  288    0    0  305]]
+
+Feature Importances:
+global_int     0.255793
+local_inte     0.224684
+building_c     0.158868
+rbox_height    0.142604
+rbox_width     0.133519
+compactnes     0.084530
+
+=== City: Berlin (29684 samples) ===
+Accuracy: 0.8837796867104598
+Macro-F1: 0.43229288049705744
+
+Classification Report:
+                precision    recall  f1-score   support
+
+    commercial       0.27      0.15      0.19       108
+    industrial       0.27      0.04      0.07        98
+infrastructure       1.00      0.07      0.12        15
+  multi-family       0.91      0.98      0.94      4494
+         other       0.83      0.73      0.78       929
+        public       0.41      0.07      0.12       123
+ single-family       0.83      0.76      0.80       170
+
+      accuracy                           0.88      5937
+     macro avg       0.65      0.40      0.43      5937
+  weighted avg       0.86      0.88      0.86      5937
+
+Confusion Matrix:
+ [[  16    1    0   58   30    3    0]
+ [   7    4    0   64   19    2    2]
+ [   2    1    1    5    5    0    1]
+ [  11    4    0 4413   49    5   12]
+ [  14    4    0  224  674    3   10]
+ [  10    1    0   84   18    9    1]
+ [   0    0    0   27   13    0  130]]
+
+Feature Importances:
+building_c     0.269281
+rbox_height    0.229652
+rbox_width     0.197294
+global_int     0.123753
+local_inte     0.093303
+compactnes     0.086717
+
+=== City: London (24754 samples) ===
+Accuracy: 0.9157745909917189
+Macro-F1: 0.490059132952087
+
+Classification Report:
+                precision    recall  f1-score   support
+
+    industrial       0.22      0.04      0.06        55
+infrastructure       0.00      0.00      0.00         1
+  multi-family       0.89      0.87      0.88      1454
+         other       0.62      0.33      0.43        55
+        public       0.56      0.71      0.62         7
+ single-family       0.93      0.96      0.95      3379
+
+      accuracy                           0.92      4951
+     macro avg       0.54      0.48      0.49      4951
+  weighted avg       0.91      0.92      0.91      4951
+
+Confusion Matrix:
+ [[   2    0   30    2    1   20]
+ [   0    0    0    0    0    1]
+ [   3    0 1260    1    2  188]
+ [   2    0    6   18    1   28]
+ [   0    0    2    0    5    0]
+ [   2    1  119    8    0 3249]]
+
+Feature Importances:
+building_c     0.344842
+rbox_height    0.246155
+rbox_width     0.186844
+global_int     0.092118
+local_inte     0.082892
+compactnes     0.047149
+
+=== City: Milano (23900 samples) ===
+Accuracy: 0.9173640167364017
+Macro-F1: 0.48760170575976075
+
+Classification Report:
+               precision    recall  f1-score   support
+
+   commercial       0.00      0.00      0.00        19
+   industrial       0.70      0.44      0.54       216
+ multi-family       0.93      0.99      0.96      4147
+        other       0.71      0.16      0.26       105
+       public       0.71      0.31      0.43        16
+single-family       0.84      0.65      0.73       277
+
+     accuracy                           0.92      4780
+    macro avg       0.65      0.42      0.49      4780
+ weighted avg       0.90      0.92      0.90      4780
+
+Confusion Matrix:
+ [[   0    4   13    1    1    0]
+ [   0   95  118    0    1    2]
+ [   0   27 4089    5    0   26]
+ [   0    6   75   17    0    7]
+ [   0    2    9    0    5    0]
+ [   0    1   96    1    0  179]]
+
+Feature Importances:
+building_c     0.234648
+rbox_width     0.175143
+rbox_height    0.174388
+local_inte     0.170612
+global_int     0.139509
+compactnes     0.105699
+
+=== City: Moscow (4844 samples) ===
+Accuracy: 0.9153766769865841
+Macro-F1: 0.3481615065664878
+
+Classification Report:
+               precision    recall  f1-score   support
+
+   commercial       0.00      0.00      0.00         1
+   industrial       0.61      0.44      0.51        78
+ multi-family       0.95      0.99      0.97       846
+        other       0.55      0.50      0.52        24
+       public       0.00      0.00      0.00         1
+single-family       0.33      0.05      0.09        19
+
+     accuracy                           0.92       969
+    macro avg       0.41      0.33      0.35       969
+ weighted avg       0.89      0.92      0.90       969
+
+Confusion Matrix:
+ [[  0   1   0   0   0   0]
+ [  0  34  40   4   0   0]
+ [  0   4 840   1   0   1]
+ [  0   7   4  12   0   1]
+ [  0   0   0   1   0   0]
+ [  0  10   4   4   0   1]]
+
+Feature Importances:
+building_c     0.243761
+rbox_width     0.204149
+rbox_height    0.177275
+local_inte     0.153183
+global_int     0.142449
+compactnes     0.079184
+
+=== City: Paris (41035 samples) ===
+Accuracy: 0.9717314487632509
+Macro-F1: 0.3336936337163449
+
+Classification Report:
+               precision    recall  f1-score   support
+
+   commercial       0.00      0.00      0.00         1
+   industrial       0.00      0.00      0.00        22
+ multi-family       0.98      1.00      0.99      7870
+        other       0.80      0.30      0.43        27
+       public       0.00      0.00      0.00         3
+single-family       0.79      0.46      0.58       284
+
+     accuracy                           0.97      8207
+    macro avg       0.43      0.29      0.33      8207
+ weighted avg       0.97      0.97      0.97      8207
+
+Confusion Matrix:
+ [[   0    0    1    0    0    0]
+ [   0    0   21    1    0    0]
+ [   0    1 7835    1    0   33]
+ [   0    0   16    8    0    3]
+ [   0    0    3    0    0    0]
+ [   0    0  152    0    0  132]]
+
+Feature Importances:
+building_c     0.224138
+global_int     0.215024
+rbox_height    0.191295
+rbox_width     0.163695
+local_inte     0.147090
+compactnes     0.058758
