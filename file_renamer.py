@@ -99,7 +99,7 @@ def rename_mismatched_columns(base_dir="data/Selected Cities"):
                 rename_map["osm_type"] = "building_t"
             """
             if "B_Coverage" in gdf.columns:
-                rename_map["b_coverage"] = "Building_C"
+                rename_map["B_Coverage"] = "Building_C"
 
             if not rename_map:
                 print(f"No columns to rename in {shp_path}, skipping")
@@ -233,7 +233,7 @@ def detect_column_differences(base_dir="data/Selected Cities"):
 
 
 if __name__ == "__main__":
-    # rename_files_in_selected_cities()
+    rename_files_in_selected_cities()
     # print_shp_column_names()
     rename_mismatched_columns()
     # print_shp_column_names()
