@@ -22,31 +22,36 @@ from sklearn.metrics import (
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
 # ─── 1. load & tag by city ─────────────────────────────────────────────────
-shp_paths = list(Path("data/Selected Cities").rglob("*.shp"))
 gdfs = []
 base = Path("data/Selected Cities")
 
-gdfs = []
-for fp in Path(base).rglob("*.shp"):
-    # get the path relative to data/Selected Cities
-    rel = fp.relative_to(base)
-    # if the .shp lives in a folder, parts[0] is that folder name
-    # otherwise parts[0] is the filename (without suffix) once we .stem it
-    if len(rel.parts) > 1:
-        city = rel.parts[0]
-    else:
-        # shapefile sits directly in "Selected Cities"
+for fp in base.rglob("*.shp"):
+    # if the .shp is directly in 'Selected Cities', use the filename;
+    # otherwise use its parent folder name
+    if fp.parent == base:
         city = fp.stem
+    else:
+        city = fp.parent.name
+
     gdf = gpd.read_file(fp)
     gdf["city"] = city
     gdfs.append(gdf)
 
 df = pd.concat(gdfs, ignore_index=True)
+print("Unique cities loaded:", df["city"].unique())
+
+
+df = pd.concat(gdfs, ignore_index=True)
 
 # ─── 2. normalize, drop missing, reproject ────────────────────────────────
 df.columns = df.columns.str.lower()
+
+print("Df for barcelona:", df[df["city"] == "Barcelona"].head())
+print("Df for barcelona:", df[df["city"] == "Berlin"].head())
+
 df = df.dropna(subset=["building_t"]).to_crs(epsg=3857)
 
+print("Unique cities loaded:", df["city"].unique())
 
 # ─── 3. compute only rotated‐bbox dims ────────────────────────────────────
 def rotated_dims(geom: Polygon):
@@ -74,7 +79,7 @@ for t in [
     group_map[t] = "single-family"
 for t in ["industrial", "warehouse"]:
     group_map[t] = "industrial"
-for t in ["retail", "office", "supermarket", "kiosk", "garage", "garages", "parking"]:
+for t in ["retail", "office", "supermarket", "kiosk"]:
     group_map[t] = "commercial"
 for t in [
     "hospital",
@@ -95,7 +100,7 @@ for t in [
     "castle",
 ]:
     group_map[t] = "public"
-for t in ["bridge", "viaduct", "railway", "transportation"]:
+for t in ["bridge", "viaduct", "railway", "transportation", "parking"]:
     group_map[t] = "infrastructure"
 
 df["building_main"] = df["building_t"].map(group_map).fillna("other")
@@ -167,6 +172,7 @@ fi = pd.Series(best_model.feature_importances_, index=features).sort_values(
 )
 print(fi.to_string())
 
+print("Total number of cities:", len(df["city"].unique()))
 # ─── 10. city-wise training with the chosen model ─────────────────────────
 for city, sub in df.groupby("city"):
     # drop rare labels (per-city) to allow stratify
@@ -195,7 +201,9 @@ for city, sub in df.groupby("city"):
         classification_report(
             y_te,
             pred,
-            target_names=LabelEncoder().fit(sub["building_main"]).classes_,
+            target_names=LabelEncoder()
+            .fit(sub["building_main"])
+            .inverse_transform(np.unique(y_te)),
             zero_division=0,
         )
     )
