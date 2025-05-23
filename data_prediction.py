@@ -34,8 +34,8 @@ X_tr_all, X_te_all, y_tr_all, y_te_all = train_test_split(
 # ─── candidate models ────────────────────────────────────────────────────────
 candidates = {
     "RandomForest": RandomForestClassifier(n_estimators=100, random_state=42),
-    "LogisticRegression": LogisticRegression(max_iter=1000, random_state=42),
-    "GradientBoosting": GradientBoostingClassifier(random_state=42),
+    # "LogisticRegression": LogisticRegression(max_iter=1000, random_state=42),
+    # "GradientBoosting": GradientBoostingClassifier(random_state=42),
 }
 
 results = {}

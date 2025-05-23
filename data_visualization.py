@@ -1,4 +1,3 @@
-# data_visualization.py
 import warnings
 from pathlib import Path
 
@@ -15,7 +14,7 @@ from data_preprocessing import load_and_preprocess, FEATURES
 # ─── suppress warnings ──────────────────────────────────────────────────────
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
-# reader-friendly labels & colors
+# --- 0) Reader-friendly display names ---
 category_display = {
     "multi-family": "Multi-family",
     "single-family": "Single-family",
@@ -35,30 +34,26 @@ feature_display = {
     "rbox_height": "Building Y-Dimension",
 }
 
-# Color mapping
+# Color mapping remains the same
 color_map = {
-    k: v
-    for k, v in {
-        "multi-family": "#1F4E79",
-        "single-family": "#D55E00",
-        "commercial": "#3C7A3F",
-        "industrial": "#A11D21",
-        "public": "#7A4A91",
-        "infrastructure": "#FF5C6A",
-        "other": "#6B4A3F",
-    }.items()
+    "multi-family": "#1F4E79",
+    "single-family": "#D55E00",
+    "commercial": "#3C7A3F",
+    "industrial": "#A11D21",
+    "public": "#7A4A91",
+    "infrastructure": "#FF5C6A",
+    "other": "#6B4A3F",
 }
-
 light_gray = "#e0e0e0"
 gray_patch = Patch(color=light_gray, label="Train set")
 
 output_dir = Path("images")
 output_dir.mkdir(exist_ok=True)
 
-# ─── load & preprocess ─────────────────────────────────────────────────────
+# --- Load & preprocess ---
 df = load_and_preprocess(Path("data/Selected Cities"))
 
-# ─── per-city maps, matrices, importances ───────────────────────────────────
+# --- Per-city visualizations ---
 for city, sub in df.groupby("city"):
     vc = sub["building_main"].value_counts()
     valid = vc[vc >= 2].index
@@ -85,9 +80,154 @@ for city, sub in df.groupby("city"):
     y_pred = model.predict(X_te)
     acc = accuracy_score(y_true, y_pred)
 
-    # … (then exactly the same plotting code you already have) …
+    sub_test = sub.loc[idx_te].copy()
+    sub_test["pred"] = (
+        LabelEncoder().fit(sub["building_main"]).inverse_transform(y_pred)
+    )
+    sub_train = sub.loc[idx_tr]
 
-# ─── overall on full dataset ─────────────────────────────────────────────────
-# split, train, compute y_pred_all, plot confusion & importances as before
+    # 1) Side-by-side maps
+    fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(16, 8))
+    sub_train.plot(ax=ax0, color=light_gray, linewidth=0.1, edgecolor="gray")
+    for cat in LabelEncoder().fit(sub["building_main"]).classes_:
+        mask = sub_test["building_main"] == cat
+        if mask.any():
+            sub_test[mask].plot(
+                ax=ax0, color=color_map[cat], linewidth=0.1, edgecolor="gray"
+            )
+    ax0.set_title(f"{city} – Ground Truth")
+    ax0.legend(
+        handles=[gray_patch]
+        + [
+            Patch(color=color_map[c], label=category_display[c])
+            for c in LabelEncoder().fit(sub["building_main"]).classes_
+        ],
+        loc="lower left",
+    )
+    ax0.axis("off")
 
-print(f"Saved all plots to {output_dir.resolve()}")
+    sub_train.plot(ax=ax1, color=light_gray, linewidth=0.1, edgecolor="gray")
+    for cat in LabelEncoder().fit(sub["building_main"]).classes_:
+        mask = sub_test["pred"] == cat
+        if mask.any():
+            sub_test[mask].plot(
+                ax=ax1, color=color_map[cat], linewidth=0.1, edgecolor="gray"
+            )
+    ax1.set_title(f"{city} – Predictions (Acc: {acc:.2f})")
+    ax1.legend(
+        handles=[gray_patch]
+        + [
+            Patch(color=color_map[c], label=category_display[c])
+            for c in LabelEncoder().fit(sub["building_main"]).classes_
+        ],
+        loc="lower left",
+    )
+    ax1.axis("off")
+
+    plt.tight_layout(pad=2.0)
+    fig.savefig(output_dir / f"{city}_comparison.png", dpi=300)
+    plt.close(fig)
+
+    # 2) City-wise confusion matrix (%)
+    le_city = LabelEncoder().fit(sub["building_main"])
+    labels = range(len(le_city.classes_))
+    cm = confusion_matrix(y_true, y_pred, labels=labels)
+    cm_pct = cm.astype(float) / cm.sum(axis=1, keepdims=True) * 100
+    fig2, ax2 = plt.subplots(figsize=(8, 6))
+    im = ax2.imshow(cm_pct, interpolation="nearest", cmap="Blues")
+    ax2.set_xticks(labels)
+    ax2.set_yticks(labels)
+    ax2.set_xticklabels(
+        [category_display[c] for c in le_city.classes_], rotation=45, ha="right"
+    )
+    ax2.set_yticklabels([category_display[c] for c in le_city.classes_])
+    for i in labels:
+        for j in labels:
+            ax2.text(
+                j,
+                i,
+                f"{cm_pct[i, j]:.1f}%",
+                ha="center",
+                va="center",
+                color="white" if cm_pct[i, j] > 50 else "black",
+            )
+    ax2.set_xlabel("Predicted Category")
+    ax2.set_ylabel("Actual Category")
+    ax2.set_title(f"{city} – Confusion Matrix (%)")
+    fig2.colorbar(im, ax=ax2)
+    fig2.tight_layout()
+    fig2.savefig(output_dir / f"{city}_confusion_matrix.png", dpi=300)
+    plt.close(fig2)
+
+    # 3) City-wise feature importance
+    importances = model.feature_importances_
+    fig3, ax3 = plt.subplots(figsize=(8, 6))
+    ax3.barh(
+        [feature_display[f] for f in reversed(FEATURES)], list(reversed(importances))
+    )
+    ax3.set_xlabel("Relative Importance")
+    ax3.set_title(f"{city} – Feature Importances")
+    fig3.tight_layout()
+    fig3.savefig(output_dir / f"{city}_feature_importance.png", dpi=300)
+    plt.close(fig3)
+
+# --- 4) Overall model on full data ---
+le_all = LabelEncoder().fit(df["building_main"])
+idx_all = df.index.to_numpy()
+idx_tr_all, idx_te_all = train_test_split(
+    idx_all,
+    test_size=0.2,
+    random_state=42,
+    stratify=df.loc[idx_all, "building_main"],
+)
+
+X_tr_all = df.loc[idx_tr_all, FEATURES].values
+y_tr_all = le_all.transform(df.loc[idx_tr_all, "building_main"])
+X_te_all = df.loc[idx_te_all, FEATURES].values
+y_true_all = le_all.transform(df.loc[idx_te_all, "building_main"])
+
+model_all = RandomForestClassifier(n_estimators=100, random_state=42)
+model_all.fit(X_tr_all, y_tr_all)
+y_pred_all = model_all.predict(X_te_all)
+acc_all = accuracy_score(y_true_all, y_pred_all)
+
+# 4a) Overall confusion matrix (%)
+cm_all = confusion_matrix(y_true_all, y_pred_all, labels=range(len(le_all.classes_)))
+cm_all_pct = cm_all.astype(float) / cm_all.sum(axis=1, keepdims=True) * 100
+fig4, ax4 = plt.subplots(figsize=(8, 6))
+im4 = ax4.imshow(cm_all_pct, interpolation="nearest", cmap="Blues")
+ax4.set_xticks(range(len(le_all.classes_)))
+ax4.set_yticks(range(len(le_all.classes_)))
+ax4.set_xticklabels(
+    [category_display[c] for c in le_all.classes_], rotation=45, ha="right"
+)
+ax4.set_yticklabels([category_display[c] for c in le_all.classes_])
+for i in range(len(le_all.classes_)):
+    for j in range(len(le_all.classes_)):
+        ax4.text(
+            j,
+            i,
+            f"{cm_all_pct[i, j]:.1f}%",
+            ha="center",
+            va="center",
+            color="white" if cm_all_pct[i, j] > 50 else "black",
+        )
+ax4.set_xlabel("Predicted Category")
+ax4.set_ylabel("Actual Category")
+ax4.set_title(f"Overall Confusion Matrix (%) (Acc: {acc_all:.2f})")
+fig4.colorbar(im4, ax=ax4)
+fig4.tight_layout()
+fig4.savefig(output_dir / "overall_confusion_matrix.png", dpi=300)
+plt.close(fig4)
+
+# 4b) Overall feature importance
+feat_imp_all = model_all.feature_importances_
+fig5, ax5 = plt.subplots(figsize=(8, 6))
+ax5.barh([feature_display[f] for f in reversed(FEATURES)], list(reversed(feat_imp_all)))
+ax5.set_xlabel("Relative Importance")
+ax5.set_title("Overall Feature Importances")
+fig5.tight_layout()
+fig5.savefig(output_dir / "overall_feature_importance.png", dpi=300)
+plt.close(fig5)
+
+print(f"Saved all plots (city-wise + overall) to {output_dir.resolve()}")
