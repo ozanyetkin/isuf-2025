@@ -1,142 +1,79 @@
-# Land Use Classification Pipeline
+# Land Use Classification of Urban Areas
 
-This project is a pipeline for loading, preprocessing, visualizing, and classifying land use data using a Random Forest model.
+This project provides a pipeline for loading, preprocessing, visualizing, and classifying land use data using a Random Forest model. It includes functions for handling spatial data, creating visualizations, and training machine learning models.
 
-## Project Structure
+## Functions
 
-```plaintext
-.gitignore
-data/
-    AL001L1_TIRANA_UA2018_v013.gpkg
-    planet_13.046,52.361_13.731,52.672-shp/
-        CHECKSUM.txt
-        logfile.txt
-        README.html
-        README.txt
-        shape/
-            buildings.cpg
-            buildings.dbf
-            buildings.prj
-            buildings.shp
-            buildings.shx
-            landuse.cpg
-            landuse.dbf
-            landuse.prj
-            landuse.shp
-            landuse.shx
-            natural.cpg
-            ...
-    planet_7.66971,45.05372_7.71254,45.07629-shp/
-        CHECKSUM.txt
-        logfile.txt
-        README.html
-        README.txt
-        shape/
-            ...
-gpkg_reader.py
-pipeline.py
-README.md
-```
+### load_data(file_path)
 
-## Requirements
+Loads spatial data from a given file path into a GeoDataFrame.
 
-- Python 3.x
-- geopandas
-- matplotlib
-- scikit-learn
+- **Parameters**:
+  - `file_path` (str): Path to the spatial data file (e.g., shapefile).
+- **Returns**:
+  - `GeoDataFrame`: Loaded spatial data.
 
-You can install the required packages using pip:
+### visualize_data(data, output_path)
 
-```sh
-pip install geopandas matplotlib scikit-learn
-```
+Creates a visualization of the GeoDataFrame and saves it to a specified file.
 
-## Usage
+- **Parameters**:
+  - `data` (GeoDataFrame): Spatial data to visualize.
+  - `output_path` (str): Path to save the visualization image.
 
-### Load Data
+### preprocess_data(data)
 
-The
+Preprocesses spatial data for machine learning by extracting features and target variables.
 
-load_data
+- **Parameters**:
+  - `data` (GeoDataFrame): Spatial data to preprocess.
+- **Returns**:
+  - `features` (DataFrame): Extracted features for the model.
+  - `target` (Series): Target variable for classification.
 
-function loads spatial data into a GeoDataFrame.
+### train_model(features, target)
 
-```python
-from pipeline import load_data
+Trains a Random Forest model to classify land use based on the provided features and target.
 
-file_path = "data/planet_7.66971,45.05372_7.71254,45.07629-shp/shape/buildings.shp"
-data = load_data(file_path)
-print(data.head())
-```
+- **Parameters**:
+  - `features` (DataFrame): Input features for training.
+  - `target` (Series): Target variable for training.
+- **Returns**:
+  - `model` (RandomForestClassifier): Trained Random Forest model.
+  - `X_test` (DataFrame): Test set features.
+  - `y_test` (Series): Test set target values.
+  - `predictions` (Series): Model predictions on the test set.
 
-### Visualize Data
+### visualize_predictions(test_geo_data, predictions, output_path)
 
-The
+Visualizes the model predictions alongside the ground truth on the GeoDataFrame and saves it to a file.
 
-visualize_data
+- **Parameters**:
+  - `test_geo_data` (GeoDataFrame): GeoDataFrame containing test data.
+  - `predictions` (Series): Model predictions.
+  - `output_path` (str): Path to save the visualization image.
 
-function creates a simple visualization of the GeoDataFrame and saves it to a file.
+## Main Script
 
-```python
-from pipeline import visualize_data
+The `pipeline.py` script runs the entire pipeline, including data loading, preprocessing, visualization, model training, and prediction visualization.
 
-visualize_data(data, output_path="land_use_map.png")
-```
+## Results
 
-### Preprocess Data
+The results of the model predictions are saved as a GeoDataFrame, and the visualizations are saved as images in the specified output directory.
 
-The
+![Land Use Classification - Amsterdam](images/Amsterdam_comparison.png)
 
-preprocess_data
+![Land Use Classification - Barcelona](images/Barcelona_comparison.png)
 
-function preprocesses spatial data for machine learning.
+![Land Use Classification - Berlin](images/Berlin_comparison.png)
 
-```python
-from pipeline import preprocess_data
+![Land Use Classification - London](images/London_comparison.png)
 
-features, target = preprocess_data(data)
-```
+![Land Use Classification - Milano](images/Milano_comparison.png)
 
-### Train Model
+![Land Use Classification - Moscow](images/Moscow_comparison.png)
 
-The
-
-train_model
-
-function trains a Random Forest model to predict land use.
-
-```python
-from pipeline import train_model
-
-model, X_test, y_test, predictions = train_model(features, target)
-```
-
-### Visualize Predictions
-
-The
-
-visualize_predictions
-
-function visualizes the model predictions alongside the ground truth on the GeoDataFrame and saves it to a file.
-
-```python
-from pipeline import visualize_predictions
-
-test_geo_data = data.iloc[X_test.index].copy()
-visualize_predictions(test_geo_data, predictions, output_path="predictions_map.png")
-```
-
-### Main Script
-
-The main script in
-
-pipeline.py
-
-runs the entire pipeline.
-
-```sh
-python pipeline.py
-```
+![Land Use Classification - Paris](images/Paris_comparison.png)
 
 ## License
 

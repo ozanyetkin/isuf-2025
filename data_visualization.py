@@ -10,6 +10,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix
 
 from data_preprocessing import load_and_preprocess, FEATURES
+from matplotlib.colors import Normalize
 
 # suppress warnings
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
@@ -17,8 +18,8 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 # 0) Reader-friendly display names
 category_display = {
-    "multi-family": "Multi-family",
-    "single-family": "Single-family",
+    "multi-family": "Apartment",
+    "single-family": "House",
     "commercial": "Commercial",
     "industrial": "Industrial",
     "public": "Public",
@@ -46,7 +47,7 @@ color_map = {
     "other": "#666666",
 }
 light_gray = "#b1b1b1"
-gray_patch = Patch(color=light_gray, label="Train set")
+gray_patch = Patch(color=light_gray, label="Training Set")
 
 output_dir = Path("images")
 output_dir.mkdir(exist_ok=True)
@@ -157,7 +158,6 @@ for city, sub in df.groupby("city"):
     ax2.set_xlabel("Predicted Category")
     ax2.set_ylabel("Actual Category")
     ax2.set_title(f"{city} – Confusion Matrix (%)")
-    fig2.colorbar(im, ax=ax2)
     fig2.tight_layout()
     fig2.savefig(output_dir / f"{city}_confusion_matrix.png", dpi=300)
     plt.close(fig2)
@@ -168,7 +168,7 @@ for city, sub in df.groupby("city"):
     ax3.barh(
         [feature_display[f] for f in reversed(FEATURES)],
         list(reversed(importances)),
-        color="#4788b1",
+        color="#6aadd5",
         height=0.4,
     )
     ax3.set_xlabel("Relative Importance")
@@ -221,7 +221,6 @@ for i in range(len(le_all.classes_)):
 ax4.set_xlabel("Predicted Category")
 ax4.set_ylabel("Actual Category")
 ax4.set_title(f"Overall Confusion Matrix (%) (Acc: {acc_all:.2f})")
-fig4.colorbar(im4, ax=ax4)
 fig4.tight_layout()
 fig4.savefig(output_dir / "overall_confusion_matrix.png", dpi=300)
 plt.close(fig4)
@@ -232,7 +231,7 @@ fig5, ax5 = plt.subplots(figsize=(8, 6))
 ax5.barh(
     [feature_display[f] for f in reversed(FEATURES)],
     list(reversed(feat_imp_all)),
-    color="#4788b1",
+    color="#6aadd5",
     height=0.4,
 )
 ax5.set_xlabel("Relative Importance")
