@@ -16,9 +16,39 @@ from data_preprocessing import load_and_preprocess, FEATURES
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
 # reader-friendly labels & colors
-category_display = {...}  # (same as before)
-feature_display = {...}  # (same as before)
-color_map = {...}  # (same as before)
+category_display = {
+    "multi-family": "Multi-family",
+    "single-family": "Single-family",
+    "commercial": "Commercial",
+    "industrial": "Industrial",
+    "public": "Public",
+    "infrastructure": "Infrastructure",
+    "other": "Other",
+}
+
+feature_display = {
+    "compactnes": "Compactness",
+    "global_int": "Global Integration",
+    "local_inte": "Local Integration",
+    "building_c": "Building Coverage",
+    "rbox_width": "Building X-Dimension",
+    "rbox_height": "Building Y-Dimension",
+}
+
+# Color mapping
+color_map = {
+    k: v
+    for k, v in {
+        "multi-family": "#1F4E79",
+        "single-family": "#D55E00",
+        "commercial": "#3C7A3F",
+        "industrial": "#A11D21",
+        "public": "#7A4A91",
+        "infrastructure": "#FF5C6A",
+        "other": "#6B4A3F",
+    }.items()
+}
+
 light_gray = "#e0e0e0"
 gray_patch = Patch(color=light_gray, label="Train set")
 
