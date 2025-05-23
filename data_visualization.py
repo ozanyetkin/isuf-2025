@@ -11,10 +11,10 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 
 from data_preprocessing import load_and_preprocess, FEATURES
 
-# ─── suppress warnings ──────────────────────────────────────────────────────
+# suppress warnings
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
-# --- 0) Reader-friendly display names ---
+# 0) Reader-friendly display names 
 category_display = {
     "multi-family": "Multi-family",
     "single-family": "Single-family",
@@ -50,10 +50,10 @@ gray_patch = Patch(color=light_gray, label="Train set")
 output_dir = Path("images")
 output_dir.mkdir(exist_ok=True)
 
-# --- Load & preprocess ---
+# Load & preprocess 
 df = load_and_preprocess(Path("data/Selected Cities"))
 
-# --- Per-city visualizations ---
+# Per-city visualizations 
 for city, sub in df.groupby("city"):
     vc = sub["building_main"].value_counts()
     valid = vc[vc >= 2].index
@@ -171,7 +171,7 @@ for city, sub in df.groupby("city"):
     fig3.savefig(output_dir / f"{city}_feature_importance.png", dpi=300)
     plt.close(fig3)
 
-# --- 4) Overall model on full data ---
+# 4) Overall model on full data 
 le_all = LabelEncoder().fit(df["building_main"])
 idx_all = df.index.to_numpy()
 idx_tr_all, idx_te_all = train_test_split(

@@ -16,22 +16,22 @@ from sklearn.metrics import (
 
 from data_preprocessing import load_and_preprocess, FEATURES
 
-# ─── suppress warnings ──────────────────────────────────────────────────────
+# suppress warnings
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
-# ─── load & preprocess once ─────────────────────────────────────────────────
+# load & preprocess once
 df = load_and_preprocess(Path("data/Selected Cities"))
 
 print("Cities loaded:", df["city"].unique())
 
-# ─── overall split ──────────────────────────────────────────────────────────
+# overall split
 y_all = LabelEncoder().fit_transform(df["building_main"])
 X_all = df[FEATURES].values
 X_tr_all, X_te_all, y_tr_all, y_te_all = train_test_split(
     X_all, y_all, test_size=0.2, random_state=42, stratify=y_all
 )
 
-# ─── candidate models ────────────────────────────────────────────────────────
+# candidate models
 candidates = {
     "RandomForest": RandomForestClassifier(n_estimators=100, random_state=42),
     # "LogisticRegression": LogisticRegression(max_iter=1000, random_state=42),
@@ -56,7 +56,7 @@ best_name = max(results, key=lambda k: results[k]["f1_macro"])
 best_model = results[best_name]["model"]
 print(f"\nSelected best: {best_name} (macro-F1={results[best_name]['f1_macro']:.4f})\n")
 
-# ─── detailed overall report ────────────────────────────────────────────────
+# detailed overall report
 print("=== Overall classification report ===")
 print(
     classification_report(
@@ -68,7 +68,7 @@ print(
 )
 print("Confusion matrix:\n", confusion_matrix(y_te_all, best_model.predict(X_te_all)))
 
-# ─── city-wise using best_model class ────────────────────────────────────────
+# city-wise using best_model class
 for city, sub in df.groupby("city"):
     vc = sub["building_main"].value_counts()
     valid = vc[vc >= 2].index
@@ -91,4 +91,7 @@ for city, sub in df.groupby("city"):
     print("Macro-F1:", f1_score(y_te, pred, average="macro", zero_division=0))
     print(classification_report(y_te, pred, zero_division=0))
     print("Confusion Matrix:\n", confusion_matrix(y_te, pred))
-    print("Feature importances:", m.feature_importances_)
+    feature_importances = zip(FEATURES, m.feature_importances_)
+    print("Feature importances:")
+    for feature, importance in feature_importances:
+        print(f"  {feature}: {importance:.4f}")
