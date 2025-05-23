@@ -244,7 +244,7 @@ for city, sub in df.groupby("city"):
     # 3) City-wise feature importance
     importances = model.feature_importances_
     fig3, ax3 = plt.subplots(figsize=(8, 6))
-    ax3.barh([feature_display[f] for f in features], importances)
+    ax3.barh([feature_display[f] for f in reversed(features)], reversed(importances))
     ax3.set_xlabel("Relative Importance")
     ax3.set_title(f"{city} – Feature Importances")
     fig3.tight_layout()
@@ -300,7 +300,7 @@ plt.close(fig4)
 # 4b) Overall feature importance
 feat_imp_all = model_all.feature_importances_
 fig5, ax5 = plt.subplots(figsize=(8, 6))
-ax5.barh([feature_display[f] for f in features], feat_imp_all)
+ax5.barh([feature_display[f] for f in reversed(features)], reversed(feat_imp_all))
 ax5.set_xlabel("Relative Importance")
 ax5.set_title("Overall Feature Importances")
 fig5.tight_layout()
