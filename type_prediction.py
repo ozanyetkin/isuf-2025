@@ -66,6 +66,7 @@ df["rbox_width"], df["rbox_height"] = r_dims[:, 0], r_dims[:, 1]
 group_map = {}
 group_map["apartments"] = "multi-family"
 for t in [
+    "residential",
     "house",
     "detached",
     "semidetached_house",
@@ -79,6 +80,8 @@ for t in ["industrial", "warehouse"]:
 for t in ["retail", "office", "supermarket", "kiosk"]:
     group_map[t] = "commercial"
 for t in [
+    "public",
+    "commercial",
     "hospital",
     "school",
     "university",
@@ -101,6 +104,10 @@ for t in ["bridge", "viaduct", "railway", "transportation", "parking"]:
     group_map[t] = "infrastructure"
 
 df["building_main"] = df["building_t"].map(group_map).fillna("other")
+
+# Print the names of "other" building categories
+other_categories = df.loc[df["building_main"] == "other", "building_t"].unique()
+print("Building categories classified as 'other':", other_categories)
 
 # ─── 5. select & clean features ────────────────────────────────────────────
 features = [
