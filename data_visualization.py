@@ -13,8 +13,9 @@ from data_preprocessing import load_and_preprocess, FEATURES
 
 # suppress warnings
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-# 0) Reader-friendly display names 
+# 0) Reader-friendly display names
 category_display = {
     "multi-family": "Multi-family",
     "single-family": "Single-family",
@@ -36,24 +37,24 @@ feature_display = {
 
 # Color mapping remains the same
 color_map = {
-    "multi-family": "#1F4E79",
-    "single-family": "#D55E00",
-    "commercial": "#3C7A3F",
-    "industrial": "#A11D21",
-    "public": "#7A4A91",
-    "infrastructure": "#FF5C6A",
-    "other": "#6B4A3F",
+    "multi-family": "#96403f",
+    "single-family": "#ffbf41",
+    "commercial": "#fd3f3f",
+    "industrial": "#d340ff",
+    "public": "#ffcfcf",
+    "infrastructure": "#41d4ff",
+    "other": "#666666",
 }
-light_gray = "#e0e0e0"
+light_gray = "#b1b1b1"
 gray_patch = Patch(color=light_gray, label="Train set")
 
 output_dir = Path("images")
 output_dir.mkdir(exist_ok=True)
 
-# Load & preprocess 
+# Load & preprocess
 df = load_and_preprocess(Path("data/Selected Cities"))
 
-# Per-city visualizations 
+# Per-city visualizations
 for city, sub in df.groupby("city"):
     vc = sub["building_main"].value_counts()
     valid = vc[vc >= 2].index
@@ -88,37 +89,39 @@ for city, sub in df.groupby("city"):
 
     # 1) Side-by-side maps
     fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(16, 8))
-    sub_train.plot(ax=ax0, color=light_gray, linewidth=0.1, edgecolor="gray")
+    sub_train.plot(ax=ax0, color=light_gray, linewidth=0.1, edgecolor="silver")
     for cat in LabelEncoder().fit(sub["building_main"]).classes_:
         mask = sub_test["building_main"] == cat
         if mask.any():
             sub_test[mask].plot(
-                ax=ax0, color=color_map[cat], linewidth=0.1, edgecolor="gray"
+                ax=ax0, color=color_map[cat], linewidth=0.1, edgecolor="silver"
             )
     ax0.set_title(f"{city} – Ground Truth")
     ax0.legend(
         handles=[gray_patch]
         + [
             Patch(color=color_map[c], label=category_display[c])
-            for c in LabelEncoder().fit(sub["building_main"]).classes_
+            for c in color_map.keys()
+            if c in LabelEncoder().fit(sub["building_main"]).classes_
         ],
         loc="lower left",
     )
     ax0.axis("off")
 
-    sub_train.plot(ax=ax1, color=light_gray, linewidth=0.1, edgecolor="gray")
+    sub_train.plot(ax=ax1, color=light_gray, linewidth=0.1, edgecolor="silver")
     for cat in LabelEncoder().fit(sub["building_main"]).classes_:
         mask = sub_test["pred"] == cat
         if mask.any():
             sub_test[mask].plot(
-                ax=ax1, color=color_map[cat], linewidth=0.1, edgecolor="gray"
+                ax=ax1, color=color_map[cat], linewidth=0.1, edgecolor="silver"
             )
     ax1.set_title(f"{city} – Predictions (Acc: {acc:.2f})")
     ax1.legend(
         handles=[gray_patch]
         + [
             Patch(color=color_map[c], label=category_display[c])
-            for c in LabelEncoder().fit(sub["building_main"]).classes_
+            for c in color_map.keys()
+            if c in LabelEncoder().fit(sub["building_main"]).classes_
         ],
         loc="lower left",
     )
@@ -163,7 +166,10 @@ for city, sub in df.groupby("city"):
     importances = model.feature_importances_
     fig3, ax3 = plt.subplots(figsize=(8, 6))
     ax3.barh(
-        [feature_display[f] for f in reversed(FEATURES)], list(reversed(importances))
+        [feature_display[f] for f in reversed(FEATURES)],
+        list(reversed(importances)),
+        color="#4788b1",
+        height=0.4,
     )
     ax3.set_xlabel("Relative Importance")
     ax3.set_title(f"{city} – Feature Importances")
@@ -171,7 +177,7 @@ for city, sub in df.groupby("city"):
     fig3.savefig(output_dir / f"{city}_feature_importance.png", dpi=300)
     plt.close(fig3)
 
-# 4) Overall model on full data 
+# 4) Overall model on full data
 le_all = LabelEncoder().fit(df["building_main"])
 idx_all = df.index.to_numpy()
 idx_tr_all, idx_te_all = train_test_split(
@@ -223,7 +229,12 @@ plt.close(fig4)
 # 4b) Overall feature importance
 feat_imp_all = model_all.feature_importances_
 fig5, ax5 = plt.subplots(figsize=(8, 6))
-ax5.barh([feature_display[f] for f in reversed(FEATURES)], list(reversed(feat_imp_all)))
+ax5.barh(
+    [feature_display[f] for f in reversed(FEATURES)],
+    list(reversed(feat_imp_all)),
+    color="#4788b1",
+    height=0.4,
+)
 ax5.set_xlabel("Relative Importance")
 ax5.set_title("Overall Feature Importances")
 fig5.tight_layout()

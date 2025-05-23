@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 from shapely.geometry import Polygon
 
-# ─── Shared settings ────────────────────────────────────────────────────────
+# Shared settings
 FEATURES = [
     "compactnes",
     "global_int",
@@ -62,6 +62,7 @@ GROUP_MAP = {
 }
 
 
+# Function to compute the dimensions of the minimum rotated rectangle
 def rotated_dims(geom: Polygon):
     """Return (min_edge, max_edge) of the geometry’s minimum rotated rectangle."""
     r = geom.minimum_rotated_rectangle
@@ -71,6 +72,7 @@ def rotated_dims(geom: Polygon):
     return min(e1, e2), max(e1, e2)
 
 
+# Function to load and preprocess shapefiles
 def load_and_preprocess(shp_dir: Path, epsg: int = 3857):
     """
     Reads all .shp under shp_dir, tags by city, computes rbox dims,
