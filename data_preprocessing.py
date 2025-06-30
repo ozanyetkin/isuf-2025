@@ -1,10 +1,12 @@
 # data_preprocessing.py
-from pathlib import Path
-
 import geopandas as gpd
 import pandas as pd
 import numpy as np
+
+from pathlib import Path
 from shapely.geometry import Polygon
+from sklearn.utils import resample
+from imblearn.over_sampling import SMOTE
 
 # Shared settings
 FEATURES = [
@@ -72,8 +74,69 @@ def rotated_dims(geom: Polygon):
     return min(e1, e2), max(e1, e2)
 
 
+# Function to balance classes in a DataFrame
+def balance_classes(
+    df: pd.DataFrame,
+    target_col: str = "building_main",
+    method: str = "oversample",  # options: "oversample", "undersample", "smote"
+    random_state: int = 42,
+) -> pd.DataFrame:
+    """
+    Balance DataFrame `df` on `target_col` via:
+      - random oversample of minority classes
+      - random undersample of majority classes
+      - SMOTE synthetic oversampling
+    """
+    # separate majority/minority
+    counts = df[target_col].value_counts()
+    majority_cls = counts.idxmax()
+    minority_cls = counts.idxmin()
+
+    df_majority = df[df[target_col] == majority_cls]
+    df_minority = df[df[target_col] == minority_cls]
+    other = df[~df[target_col].isin([majority_cls, minority_cls])]
+
+    if method == "oversample":
+        # upsample minority to match majority
+        df_minority_upsampled = resample(
+            df_minority,
+            replace=True,
+            n_samples=len(df_majority),
+            random_state=random_state,
+        )
+        balanced = pd.concat([df_majority, df_minority_upsampled, other])
+
+    elif method == "undersample":
+        # downsample majority to match minority
+        df_majority_downsampled = resample(
+            df_majority,
+            replace=False,
+            n_samples=len(df_minority),
+            random_state=random_state,
+        )
+        balanced = pd.concat([df_majority_downsampled, df_minority, other])
+
+    elif method == "smote":
+        # apply SMOTE; only works on numeric features
+        X = df[FEATURES]
+        y = df[target_col]
+        sm = SMOTE(random_state=random_state)
+        X_res, y_res = sm.fit_resample(X, y)
+        balanced = pd.concat([X_res, y_res.rename(target_col)], axis=1)
+
+    else:
+        raise ValueError(f"Unknown balance method: {method!r}")
+
+    return balanced.sample(frac=1, random_state=random_state)  # shuffle
+
+
 # Function to load and preprocess shapefiles
-def load_and_preprocess(shp_dir: Path, epsg: int = 3857):
+# data_preprocessing.py
+def load_and_preprocess(
+    shp_dir: Path,
+    epsg: int = 3857,
+    balance_method: str | None = None,
+):
     """
     Reads all .shp under shp_dir, tags by city, computes rbox dims,
     maps building_main, filters & numeric-coerces FEATURES, returns a clean DataFrame.
@@ -104,5 +167,9 @@ def load_and_preprocess(shp_dir: Path, epsg: int = 3857):
     for c in FEATURES:
         df[c] = pd.to_numeric(df[c], errors="coerce")
     df = df.dropna(subset=FEATURES + ["building_main"])
+
+    # only balance if requested
+    if balance_method:
+        df = balance_classes(df, target_col="building_main", method=balance_method)
 
     return df
