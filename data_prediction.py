@@ -21,7 +21,7 @@ from data_preprocessing import load_and_preprocess, FEATURES
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
 # Load and preprocess (no balancing here)
-df = load_and_preprocess(Path("data"), balance_method=None)
+df = load_and_preprocess(Path("data"), balance_method="None")
 cities = df["city"].unique()
 print("Cities in dataset:", cities)
 
