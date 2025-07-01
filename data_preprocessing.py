@@ -1,7 +1,7 @@
 # data_preprocessing.py
-import geopandas as gpd
-import pandas as pd
 import numpy as np
+import pandas as pd
+import geopandas as gpd
 
 from pathlib import Path
 from shapely.geometry import Polygon
@@ -131,7 +131,6 @@ def balance_classes(
 
 
 # Function to load and preprocess shapefiles
-# data_preprocessing.py
 def load_and_preprocess(
     shp_dir: Path,
     epsg: int = 3857,

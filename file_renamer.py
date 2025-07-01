@@ -4,7 +4,7 @@ import geopandas as gpd
 #!/usr/bin/env python3
 
 
-def rename_files_in_selected_cities(base_dir="data/Selected Cities"):
+def rename_files_in_selected_cities(base_dir="data"):
     """
     For each subfolder in base_dir, rename all files inside it to
     {subfolder_name}_buildings.ext, preserving the original extension.
@@ -34,7 +34,7 @@ def rename_files_in_selected_cities(base_dir="data/Selected Cities"):
             print(f"Renamed {old_path} -> {new_path}")
 
 
-def print_shp_column_names(base_dir="data/Selected Cities"):
+def print_shp_column_names(base_dir="data"):
     """
     After renaming, find all .shp files under base_dir, read them with geopandas,
     and print their column names for each file.
@@ -65,7 +65,7 @@ def print_shp_column_names(base_dir="data/Selected Cities"):
             print()
 
 
-def rename_mismatched_columns(base_dir="data/Selected Cities"):
+def rename_mismatched_columns(base_dir="data"):
     """
     Rename 'osm_type' column to 'Building_t' and 'b_coverage' column to 'building_c'
     in all .shp files under base_dir and overwrite them.
@@ -114,7 +114,7 @@ def rename_mismatched_columns(base_dir="data/Selected Cities"):
                 continue
 
 
-def lowercase_and_validate_columns(base_dir="data/Selected Cities"):
+def lowercase_and_validate_columns(base_dir="data"):
     """
     For each .shp under base_dir, rename all columns to lowercase,
     drop extra columns if there are any, overwrite the file, and then verify
@@ -189,7 +189,7 @@ def lowercase_and_validate_columns(base_dir="data/Selected Cities"):
                 print(f"  {p}")
 
 
-def detect_column_differences(base_dir="data/Selected Cities"):
+def detect_column_differences(base_dir="data"):
     """
     Detect and report differences in column names across all .shp files under base_dir,
     treating column names as case-insensitive.
